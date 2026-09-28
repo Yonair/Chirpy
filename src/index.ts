@@ -1,10 +1,19 @@
 import express from 'express';
-import { handlerReadiness } from './api/endpoint.js';
+import { handlerReadiness, handlerRequests, handlerReset } from './api/endpoint.js';
+import { middlewareLogResponses, middlewareMetricsInc } from './api/middleware.js';
 
 const app = express();
 const port = 8080;
 
-app.get("/healthz", handlerReadiness);
+app.use(middlewareLogResponses);
+
+app.get("/api/healthz", handlerReadiness);
+
+app.get("/admin/metrics", handlerRequests);
+
+app.get("/admin/reset", handlerReset);
+
+app.use("/app", middlewareMetricsInc);
 
 app.use("/app", express.static("./src/app"));
 
