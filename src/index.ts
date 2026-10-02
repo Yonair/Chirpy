@@ -1,6 +1,6 @@
 import express from 'express';
 import { handlerReadiness, handlerRequests, handlerReset, handlerPost } from './api/endpoint.js';
-import { middlewareLogResponses, middlewareMetricsInc } from './api/middleware.js';
+import { middlewareLogResponses, middlewareMetricsInc, errorHandler } from './api/middleware.js';
 
 const app = express();
 const port = 8080;
@@ -16,7 +16,11 @@ app.get("/api/healthz", handlerReadiness);
 app.get("/admin/metrics", handlerRequests);
 app.post("/admin/reset", handlerReset);
 
-app.post("/api/validate_chirp", handlerPost);
+app.post("/api/validate_chirp", async (req, res) => {
+  await handlerPost(req, res);
+});
+
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

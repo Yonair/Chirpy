@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { config } from "../config.js";
-import { respondWithError, respondWithJSON } from "./json.js";
+import { respondWithJSON } from "./json.js";
+import { BadRequestError } from "./errors.js";
 
 export async function handlerReadiness(req: Request, res: Response): Promise<void> {
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -31,9 +32,9 @@ export async function handlerPost(req: Request, res: Response): Promise<void> {
 
   const maxChirpLength = 140;
   if (params.body.length > maxChirpLength) {
-    respondWithError(res, 400, "Chirp is too long");
-    return;
+    throw new BadRequestError("Chirp is too long");
   }
+  
   const bannedWords = ["kerfuffle", "sharbert", "fornax"];
   const cleanedBody: string = params.body.split(" ").map((word) => {
     if (bannedWords.includes(word.toLowerCase())) {
