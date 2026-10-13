@@ -1,5 +1,5 @@
 import express from 'express';
-import { handlerReadiness, handlerRequests, handlerReset, handlerPost, handlerCreateUser, handlerGetChirps, handlerGetChirpsById } from './api/endpoint.js';
+import { handlerReadiness, handlerRequests, handlerReset, handlerPost, handlerCreateUser, handlerGetChirps, handlerGetChirpsById, handlerLogin, handlerRefreshTokens, handlerRevoke, handlerUpdateUser, handlerDeleteChirp } from './api/endpoint.js';
 import { middlewareLogResponses, middlewareMetricsInc, errorHandler } from './api/middleware.js';
 import postgres from "postgres";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
@@ -25,6 +25,11 @@ app.get("/api/chirps/:chirpId", handlerGetChirpsById);
 app.post("/admin/reset", handlerReset);
 app.post("/api/users", handlerCreateUser);
 app.post("/api/chirps", handlerPost);
+app.post("/api/login", handlerLogin);
+app.post("/api/refresh", handlerRefreshTokens);
+app.post("/api/revoke", handlerRevoke);
+app.put("/api/users", handlerUpdateUser);
+app.delete("/api/chirps/:chirpId", handlerDeleteChirp)
 
 app.use(errorHandler);
 
