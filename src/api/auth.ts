@@ -67,3 +67,14 @@ export function makeRefreshToken() {
     const hexString = crypto.randomBytes(32).toString("hex");
     return hexString;
 }
+
+export function getAPIKey(req: Request): string {
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+        throw new UserNotAuthenticatedError("Missing or invalid Authorization header");
+    }
+    if (!authHeader.startsWith("ApiKey ")) {
+        throw new BadRequestError("Missing or invalid Authorization header");
+    }
+    return authHeader.substring(7).trim();
+};

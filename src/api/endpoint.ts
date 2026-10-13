@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { config } from "../config.js";
 import { respondWithJSON } from "./json.js";
 import { BadRequestError, NotFoundError, UserForbiddenError, UserNotAuthenticatedError } from "./errors.js";
-import { createUser, deleteUsers, getUserByEmail, updateUser } from "../db/queries/users.js";
+import { createUser, deleteUsers, getUserByEmail, updateUser, upgradeUser } from "../db/queries/users.js";
 import { createChirp, getChirps, getChirpsById, removeChirp } from "../db/queries/chirps.js"; 
-import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken } from "./auth.js";
-import { NewUser } from "../db/schema.js";
+import { hashPassword, checkPasswordHash, makeJWT, getBearerToken, validateJWT, makeRefreshToken, getAPIKey } from "./auth.js";
+import { chirps, NewUser } from "../db/schema.js";
 import { createRefreshToken, getUserFromRefreshToken } from "../db/queries/refresh.js";
 import { revokeRefreshToken } from "../db/queries/revoke.js"
 
@@ -95,13 +95,33 @@ export async function handlerCreateUser(req: Request, res: Response): Promise<vo
     email: user.email,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    isChirpyRed: user.isChirpyRed,
   } satisfies UserResponse;
   respondWithJSON(res, 201, userResponse);
 
 }
 
 export async function handlerGetChirps(req: Request, res: Response): Promise<void> {
-  const chirps = await getChirps();
+  let authorId = "";
+  let authorIdQuery = req.query.authorId;
+  if (typeof authorIdQuery === "string") {
+    authorId = authorIdQuery;
+  }
+
+  let sortDirection = "asc";
+  if (req.query.sort === "desc") {
+    sortDirection = "desc";
+  }
+
+  const chirps = await getChirps(authorId);
+
+  chirps.sort((a, b) => {
+    if (sortDirection === "desc") {
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    }
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
+
   respondWithJSON(res, 200, chirps);
 }
 
@@ -157,12 +177,13 @@ export async function handlerLogin(req: Request, res: Response): Promise<void> {
   const accessToken = makeJWT(userVerified.id, ONE_HOUR, config.api.secret);
 
   respondWithJSON(res, 200, { 
-    "id": userVerified.id,
-    "createdAt": userVerified.createdAt,
-    "updatedAt": userVerified.updatedAt,
-    "email": userVerified.email,
-    "token": accessToken,
-    "refreshToken": refreshToken,
+    id: userVerified.id,
+    createdAt: userVerified.createdAt,
+    updatedAt: userVerified.updatedAt,
+    email: userVerified.email,
+    token: accessToken,
+    refreshToken: refreshToken,
+    isChirpyRed: userVerified.isChirpyRed
    });
 }
 
@@ -212,6 +233,7 @@ export async function handlerUpdateUser(req: Request, res: Response): Promise<vo
     email: user.email,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    isChirpyRed: user.isChirpyRed,
   } satisfies UserResponse;
 
   respondWithJSON(res, 200, userResponse);
@@ -238,4 +260,27 @@ export async function handlerDeleteChirp(req: Request, res: Response): Promise<v
 
   res.status(204).send();
   
+}
+
+export async function handlerUpgradeUser(req: Request, res: Response): Promise<void>{
+    const event = req.body.event;
+    const userId = req.body.data.userId;
+    const authenticated = getAPIKey(req);
+
+    if (authenticated !== config.api.polkaKey) {
+      throw new UserNotAuthenticatedError("Unauthorized user")
+    }
+
+    if (event !== "user.upgraded") {
+      res.status(204).send();
+      return;
+    }
+      
+    const upgraded = await upgradeUser(userId);
+
+    if (!upgraded) {
+      throw new NotFoundError("User not found");
+    }
+    
+    res.status(204).send();
 }

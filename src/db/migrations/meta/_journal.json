@@ -29,6 +29,13 @@
       "when": 1791565166409,
       "tag": "0005_awesome_scarlet_spider",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791920147734,
+      "tag": "0006_parched_molly_hayes",
+      "breakpoints": true
     }
   ]
 }
